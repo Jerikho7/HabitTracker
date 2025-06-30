@@ -1,3 +1,88 @@
-from django.shortcuts import render
+from rest_framework import status
+from rest_framework.generics import CreateAPIView, UpdateAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
-# Create your views here.
+from users.models import User
+from users.permissions import IsOwner, IsModerator
+from users.serializers import RegisterSerializer, UserSerializer, ChangePasswordSerializer
+
+
+class RegisterView(CreateAPIView):
+    """API для регистрации нового пользователя.
+
+    Доступные методы:
+    - POST: Создать нового пользователя
+    """
+
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
+
+
+class ChangePasswordView(UpdateAPIView):
+    """
+    Контроллер для смены пароля пользователя.
+    Пользователь должен передать old_password и new_password.
+    """
+    serializer_class = ChangePasswordSerializer
+    model = User
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if not user.check_password(serializer.validated_data["old_password"]):
+            return Response({"old_password": ["Неверный текущий пароль"]}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+
+        return Response({"detail": "Пароль успешно изменён"}, status=status.HTTP_200_OK)
+
+class UserViewSet(ModelViewSet):
+    """
+    Контроллер для работы с профилем пользователя (только свой профиль).
+    Пользователь может:
+    - просматривать
+    - редактировать
+    - деактивировать (is_active = False)
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get_queryset(self):
+        return User.objects.filter(id=self.request.user.id)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
+
+    def create(self, request, *args, **kwargs):
+        raise NotImplementedError("Создание пользователя доступно только через /register/")
+
+class ModeratorUserViewSet(ModelViewSet):
+    """
+    Модераторский доступ:
+    - Видит всех пользователей.
+    - Удаляет только неактивных.
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsModerator]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_active:
+            return Response(
+                {"detail": "Нельзя удалить активного пользователя."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
