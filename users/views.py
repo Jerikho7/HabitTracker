@@ -25,6 +25,7 @@ class ChangePasswordView(UpdateAPIView):
     Контроллер для смены пароля пользователя.
     Пользователь должен передать old_password и new_password.
     """
+
     serializer_class = ChangePasswordSerializer
     model = User
     permission_classes = [IsAuthenticated]
@@ -44,6 +45,7 @@ class ChangePasswordView(UpdateAPIView):
         user.save()
 
         return Response({"detail": "Пароль успешно изменён"}, status=status.HTTP_200_OK)
+
 
 class UserViewSet(ModelViewSet):
     """
@@ -67,12 +69,14 @@ class UserViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         raise NotImplementedError("Создание пользователя доступно только через /register/")
 
+
 class ModeratorUserViewSet(ModelViewSet):
     """
     Модераторский доступ:
     - Видит всех пользователей.
     - Удаляет только неактивных.
     """
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsModerator]
@@ -80,9 +84,6 @@ class ModeratorUserViewSet(ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.is_active:
-            return Response(
-                {"detail": "Нельзя удалить активного пользователя."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"detail": "Нельзя удалить активного пользователя."}, status=status.HTTP_403_FORBIDDEN)
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

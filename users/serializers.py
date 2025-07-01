@@ -70,6 +70,7 @@ class RegisterSerializer(ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
+
 class ChangePasswordSerializer(ModelSerializer):
     """Сериализатор для смены пароля пользователя."""
 
