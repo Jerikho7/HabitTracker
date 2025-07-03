@@ -6,8 +6,10 @@ from .serializers import HabitSerializer, PublicHabitSerializer
 from .pagination import HabitPaginator
 from users.permissions import IsOwner, IsModerator
 
+
 class HabitViewSet(ModelViewSet):
     """ViewSet для CRUD операций с привычками."""
+
     pagination_class = HabitPaginator
     serializer_class = HabitSerializer
 
@@ -41,8 +43,10 @@ class HabitViewSet(ModelViewSet):
             instance.is_active = False
             instance.save()
 
+
 class PublicHabitListAPIView(ListAPIView):
     """Контроллер для списка публичных привычек."""
+
     queryset = Habit.objects.filter(is_public=True, is_active=True)
     serializer_class = PublicHabitSerializer
     pagination_class = HabitPaginator

@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -22,15 +21,15 @@ class Habit(models.Model):
         is_active (BooleanField): Активна ли привычка.
     """
 
-    PERIOD_CHOICES = (
-        (1, "каждый день"),
-        (2, "через день"),
-        (3, "раз в 3 дня"),
-        (4, "раз в 4 дня"),
-        (5, "раз в 5 дней"),
-        (6, "раз в 6 дней"),
-        (7, "раз в неделю"),
-    )
+    PERIOD_CHOICES = [
+        ("every day", "каждый день"),
+        ("every other day", "через день"),
+        ("every three days", "раз в 3 дня"),
+        ("every four days", "раз в 4 дня"),
+        ("every five days", "раз в 5 дней"),
+        ("every six days", "раз в 6 дней"),
+        ("every week", "раз в неделю"),
+    ]
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="habits", verbose_name="user", help_text="Создатель привычки"
@@ -42,7 +41,7 @@ class Habit(models.Model):
         verbose_name="Место выполнения привычки",
         help_text="Место, где выполняется привычка",
     )
-    time = models.DateTimeField(
+    time = models.TimeField(
         null=True,
         blank=True,
         verbose_name="Время выполнения привычки",
@@ -68,9 +67,10 @@ class Habit(models.Model):
     )
     period = models.CharField(
         choices=PERIOD_CHOICES,
-        default=1,
+        default="every day",
+        max_length=32,
         verbose_name="Периодичность выполнения",
-        help_text="Периодичность в днях (1-7)",
+        help_text="Периодичность в днях",
     )
     reward = models.CharField(
         max_length=255,
@@ -89,23 +89,6 @@ class Habit(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
-
-    def clean(self):
-        """Валидация данных привычки перед сохранением."""
-        if self.reward and self.linked_habit:
-            raise ValidationError("Нельзя одновременно указать вознаграждение и связанную привычку.")
-
-        if self.execution_time > 120:
-            raise ValidationError("Время выполнения должно быть не больше 120 секунд.")
-
-        if self.linked_habit and not self.linked_habit.is_pleasant:
-            raise ValidationError("Связанной может быть только приятная привычка.")
-
-        if self.is_pleasant and (self.reward or self.linked_habit):
-            raise ValidationError("Приятная привычка не может иметь вознаграждение или связанную привычку.")
-
-        if self.period < 1 or self.period > 7:
-            raise ValidationError("Нельзя выполнять привычку реже одного раза в 7 дней.")
 
     def __str__(self):
         return f"{self.action} в {self.time} в {self.place}"

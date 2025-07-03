@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -68,6 +69,14 @@ class UserViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         raise NotImplementedError("Создание пользователя доступно только через /register/")
+
+    @action(methods=["patch"], detail=False, url_path="profile")
+    def update_own_profile(self, request):
+        user = request.user
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class ModeratorUserViewSet(ModelViewSet):

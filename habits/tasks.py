@@ -4,6 +4,7 @@ from django.utils import timezone
 from .models import Habit, User
 from datetime import datetime, timedelta
 
+
 @shared_task
 def check_habits_and_notify():
     """Проверяет активные привычки и отправляет уведомления.
@@ -18,11 +19,7 @@ def check_habits_and_notify():
     time_window_start = (datetime.combine(current_date, current_time) - timedelta(minutes=5)).time()
     time_window_end = (datetime.combine(current_date, current_time) + timedelta(minutes=5)).time()
 
-    habits = Habit.objects.filter(
-        is_active=True,
-        time__gte=time_window_start,
-        time__lte=time_window_end
-    )
+    habits = Habit.objects.filter(is_active=True, time__gte=time_window_start, time__lte=time_window_end)
 
     for habit in habits:
         last_notification = habit.updated_at.date() if habit.updated_at else habit.created_at.date()

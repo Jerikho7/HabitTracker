@@ -16,8 +16,7 @@ class Command(BaseCommand):
 
         # Получаем необходимые разрешения
         permissions = Permission.objects.filter(
-            content_type=habit_ct,
-            codename__in=["view_habit", "change_habit", "delete_habit"]
+            content_type=habit_ct, codename__in=["view_habit", "change_habit", "delete_habit"]
         )
 
         # Привязываем разрешения к группе

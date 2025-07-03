@@ -117,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
+AUTH_USER_MODEL = "users.User"
 LANGUAGE_CODE = "ru"
 
 TIME_ZONE = "Asia/Sakhalin"
@@ -142,9 +142,9 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# CELERY_BEAT_SCHEDULE = {
-#     "deactivate_inactive_users": {
-#         "task": "habits.tasks.deactivate_inactive_users",
-#         "schedule": timedelta(days=1),
-#     },
-# }
+CELERY_BEAT_SCHEDULE = {
+    "check_habits_and_notify": {
+        "task": "habits.tasks.check_habits_and_notify",
+        "schedule": timedelta(hours=1),
+    },
+}
