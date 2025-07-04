@@ -145,6 +145,6 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_BEAT_SCHEDULE = {
     "check_habits_and_notify": {
         "task": "habits.tasks.check_habits_and_notify",
-        "schedule": timedelta(hours=1),
+        "schedule": timedelta(minutes=1),
     },
 }

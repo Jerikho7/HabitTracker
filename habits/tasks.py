@@ -4,15 +4,21 @@ from django.utils import timezone
 from .models import Habit, User
 from datetime import datetime, timedelta
 
+PERIOD_MAP = {
+    "every day": 1,
+    "every other day": 2,
+    "every three days": 3,
+    "every four days": 4,
+    "every five days": 5,
+    "every six days": 6,
+    "every week": 7,
+}
+
 
 @shared_task
 def check_habits_and_notify():
-    """Проверяет активные привычки и отправляет уведомления.
-
-    Проверяет все активные привычки, у которых текущее время соответствует времени выполнения
-    и периодичность совпадает с текущей датой.
-    """
-    now = timezone.now()
+    """Проверяет активные привычки и отправляет уведомления."""
+    now = timezone.localtime()
     current_time = now.time()
     current_date = now.date()
 
@@ -22,19 +28,29 @@ def check_habits_and_notify():
     habits = Habit.objects.filter(is_active=True, time__gte=time_window_start, time__lte=time_window_end)
 
     for habit in habits:
-        last_notification = habit.updated_at.date() if habit.updated_at else habit.created_at.date()
-        days_since_last = (current_date - last_notification).days
 
-        if days_since_last % habit.period == 0:
-            try:
-                user_profile = habit.user.profile
-                chat_id = user_profile.telegram_chat_id
-                if chat_id:
-                    message = f"Напоминание: {habit.action} в {habit.time} в {habit.place}"
-                    if habit.reward:
-                        message += f". Награда: {habit.reward}"
-                    elif habit.linked_habit:
-                        message += f". Награда: {habit.linked_habit.action}"
-                    send_telegram_notification.delay(chat_id, message)
-            except User.DoesNotExist:
+        last_activity_date = habit.updated_at.date() if habit.updated_at else habit.created_at.date()
+        days_passed = (current_date - last_activity_date).days
+
+        period_days = PERIOD_MAP.get(habit.period)
+
+        if period_days is None:
+            continue
+
+        if days_passed % period_days == 0:
+            user = habit.user
+            chat_id = user.tg_chat_id
+
+            if not chat_id:
                 continue
+
+            message = f"Напоминание: {habit.action} время {habit.time.strftime('%H:%M')} - {habit.place}"
+            if habit.reward:
+                message += f". Награда: {habit.reward}"
+            elif habit.linked_habit:
+                message += f". Награда: {habit.linked_habit.action}"
+
+            try:
+                send_telegram_notification(chat_id, message)
+            except Exception as e:
+                print(f"[ERROR] Ошибка при отправке в Telegram: {e}")

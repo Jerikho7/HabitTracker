@@ -61,7 +61,7 @@ class UserViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return User.objects.filter(id=self.request.user.id)
+        return User.objects.filter(id=self.request.user.id, is_active=True)
 
     def perform_destroy(self, instance):
         instance.is_active = False
@@ -70,13 +70,21 @@ class UserViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         raise NotImplementedError("Создание пользователя доступно только через /register/")
 
-    @action(methods=["patch"], detail=False, url_path="profile")
+    @action(methods=["patch"], detail=False, url_path="me")
     def update_own_profile(self, request):
         user = request.user
         serializer = self.get_serializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+    @action(methods=["delete"], detail=False, url_path="me")
+    def deactivate_own_profile(self, request):
+        """Пользователь деактивирует свой аккаунт (is_active=False)."""
+        user = request.user
+        user.is_active = False
+        user.save()
+        return Response({"detail": "Профиль деактивирован."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class ModeratorUserViewSet(ModelViewSet):
@@ -95,4 +103,4 @@ class ModeratorUserViewSet(ModelViewSet):
         if instance.is_active:
             return Response({"detail": "Нельзя удалить активного пользователя."}, status=status.HTTP_403_FORBIDDEN)
         instance.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Пользователь удален."}, status=status.HTTP_204_NO_CONTENT)
