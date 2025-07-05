@@ -58,7 +58,7 @@ class UserViewSet(ModelViewSet):
     """
 
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id, is_active=True)
@@ -68,7 +68,10 @@ class UserViewSet(ModelViewSet):
         instance.save()
 
     def create(self, request, *args, **kwargs):
-        raise NotImplementedError("Создание пользователя доступно только через /register/")
+        return Response(
+            {"detail": "Метод не разрешён. Используйте /register/ для создания пользователя."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     @action(methods=["patch"], detail=False, url_path="me")
     def update_own_profile(self, request):

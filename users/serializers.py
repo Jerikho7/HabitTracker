@@ -76,3 +76,7 @@ class ChangePasswordSerializer(ModelSerializer):
 
     old_password = CharField(required=True)
     new_password = CharField(required=True, validators=[validate_password])
+
+    class Meta:
+        model = User
+        fields = ("old_password", "new_password")
