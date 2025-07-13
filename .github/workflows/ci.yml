@@ -95,21 +95,20 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USER }} ${{ secrets.SERVER_IP }} << EOF
 
-          if sudo docker ps -a --format '{{.Names}}' | grep -q '^habittracker$'; then
-            echo "Removing existing container 'habittracker'..."
-            sudo docker stop habittracker || true
-            sudo docker rm habittracker || true
-          fi
+          echo "===> Удаляем старый контейнер habittracker, если есть"
+          sudo docker rm -f habittracker 2>/dev/null || true
 
-          # Останавливаем все контейнеры, использующие порт 80
+          echo "===> Освобождаем порт 80 (на всякий случай)"
           sudo docker ps -q --filter "publish=80" | xargs -r sudo docker stop
           sudo docker ps -aq --filter "publish=80" | xargs -r sudo docker rm
 
-          # Убиваем процессы, занимающие порт 80
+          echo "===> Убиваем процессы на порту 80"
           sudo ss -tulnp | grep ':80 ' | awk '{print \$NF}' | cut -d',' -f2 | cut -d= -f2 | xargs -r sudo kill -9
 
-          # Пуллим и запускаем контейнер
+          echo "===> Pull образа"
           sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }}
+
+          echo "===> Запуск контейнера"
           sudo docker run -d --name habittracker -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }}
 
           EOF
