@@ -93,21 +93,23 @@ jobs:
 
       - name: Deploy to server
         run: |
-          ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USER }} ${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USER }} ${{ secrets.SERVER_IP }} << EOF
+
           if sudo docker ps -a --format '{{.Names}}' | grep -q '^habittracker$'; then
-          echo "Removing existing container 'habittracker'..."
-          sudo docker stop habittracker || true
-          sudo docker rm habittracker || true
+            echo "Removing existing container 'habittracker'..."
+            sudo docker stop habittracker || true
+            sudo docker rm habittracker || true
           fi
-          
-          # Останавливаем ВСЕ контейнеры, использующие порт 80
+
+          # Останавливаем все контейнеры, использующие порт 80
           sudo docker ps -q --filter "publish=80" | xargs -r sudo docker stop
           sudo docker ps -aq --filter "publish=80" | xargs -r sudo docker rm
-    
-          # Дополнительно убиваем процессы, занимающие порт
-          sudo ss -tulnp | grep ':80 ' | awk '{print $7}' | cut -d= -f2 | xargs -r sudo kill -9
-    
-          # Запускаем наш контейнер
+
+          # Убиваем процессы, занимающие порт 80
+          sudo ss -tulnp | grep ':80 ' | awk '{print \$NF}' | cut -d',' -f2 | cut -d= -f2 | xargs -r sudo kill -9
+
+          # Пуллим и запускаем контейнер
           sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }}
           sudo docker run -d --name habittracker -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }}
+
           EOF
