@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from users.models import User
-from users.permissions import IsOwner, IsModerator
+from users.permissions import IsModerator
 from users.serializers import RegisterSerializer, UserSerializer, ChangePasswordSerializer
 
 

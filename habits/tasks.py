@@ -1,7 +1,7 @@
 from celery import shared_task
 from habits.services import send_telegram_notification
 from django.utils import timezone
-from .models import Habit, User
+from .models import Habit
 from datetime import datetime, timedelta
 
 PERIOD_MAP = {
