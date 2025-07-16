@@ -1,7 +1,5 @@
-**
-!config
-!habits
-!users
-!manage.py
-!pyproject.toml
-!poetry.lock
+__pycache__/
+*.pyc
+*.pyo
+.venv
+.git
