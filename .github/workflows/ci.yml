@@ -70,10 +70,10 @@ jobs:
         run: echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
 
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }} .
+        run: docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }} .
 
       - name: Push Docker image to Docker hub
-        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }}
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
 
   deploy:
     needs: build
@@ -93,14 +93,15 @@ jobs:
 
       - name: Deploy to server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
-            docker stop habittracker || true
-            docker rm habittracker || true
-            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }}
-            docker run -d \
-              --name habittracker \
-              --restart always \
-              -p 80:8000 \
-              -e DATABASE_URL=${{ secrets.DATABASE_URL }} \
-              ${{ secrets.DOCKER_HUB_USERNAME }}/habittracker:${{ github.sha }}
-          "
+          ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USER }} ${{ secrets.SERVER_IP }} << 'EOF'
+          # Останавливаем ВСЕ контейнеры, использующие порт 80
+          sudo docker ps -q --filter "publish=80" | xargs -r sudo docker stop
+          sudo docker ps -aq --filter "publish=80" | xargs -r sudo docker rm
+    
+          # Дополнительно убиваем процессы, занимающие порт
+          sudo ss -tulnp | grep ':80 ' | awk '{print $7}' | cut -d= -f2 | xargs -r sudo kill -9
+    
+          # Запускаем наш контейнер
+          sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+          sudo docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+          EOF
